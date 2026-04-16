@@ -91,6 +91,54 @@ public class PromptGeneratorTests : IDisposable
     }
 
     /// <summary>
+    /// Тест проверяет, что файл перезаписывается, если параметр overwrite равен true (по умолчанию).
+    /// </summary>
+    [Fact]
+    public void GeneratePrompt_ShouldOverwriteExistingFile_WhenOverwriteIsTrue()
+    {
+        // Arrange
+        var testFileName = "OverwritetQuest.txt";
+        var sourceFilePath = Path.Combine(_testStoryPath, testFileName);
+        File.WriteAllText(sourceFilePath, "Новый сюжет.");
+
+        var targetFilePath = Path.Combine(_testPromptPath, $"Промт. {testFileName}");
+        File.WriteAllText(targetFilePath, "Старый промпт.");
+
+        // Act
+        var resultPath = PromptGenerator.GeneratePrompt(testFileName, _sampleFilePath, overwrite: true);
+
+        // Assert
+        Assert.NotNull(resultPath);
+        var resultContent = File.ReadAllText(resultPath);
+        Assert.Contains("Новый сюжет.", resultContent);
+        Assert.DoesNotContain("Старый промпт.", resultContent);
+    }
+
+    /// <summary>
+    /// Тест проверяет, что файл не перезаписывается, если параметр overwrite равен false.
+    /// </summary>
+    [Fact]
+    public void GeneratePrompt_ShouldNotOverwriteExistingFile_WhenOverwriteIsFalse()
+    {
+        // Arrange
+        var testFileName = "NoOverwriteQuest.txt";
+        var sourceFilePath = Path.Combine(_testStoryPath, testFileName);
+        File.WriteAllText(sourceFilePath, "Новый сюжет.");
+
+        var targetFilePath = Path.Combine(_testPromptPath, $"Промт. {testFileName}");
+        File.WriteAllText(targetFilePath, "Старый промпт.");
+
+        // Act
+        var resultPath = PromptGenerator.GeneratePrompt(testFileName, _sampleFilePath, overwrite: false);
+
+        // Assert
+        Assert.NotNull(resultPath);
+        var resultContent = File.ReadAllText(resultPath);
+        Assert.Contains("Старый промпт.", resultContent);
+        Assert.DoesNotContain("Новый сюжет.", resultContent);
+    }
+
+    /// <summary>
     /// Тест проверки работы нового метода генерации по абсолютному пути, когда файл внутри папки сюжетов.
     /// </summary>
     [Fact]

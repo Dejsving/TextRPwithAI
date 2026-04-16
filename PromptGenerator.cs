@@ -66,7 +66,7 @@ public static class PromptGenerator
     /// <returns>Полный путь к созданному файлу промпта, либо null, если исходный файл сюжета не найден.</returns>
     /// <exception cref="DirectoryNotFoundException">Выбрасывается, если не существует папка с сюжетами.</exception>
     /// <exception cref="FileNotFoundException">Выбрасывается, если не найден шаблон Sample.txt.</exception>
-    public static string? GeneratePrompt(string fileName, string? sampleFilePath = null)
+    public static string? GeneratePrompt(string fileName, string? sampleFilePath = null, bool overwrite = true)
     {
         if ( sampleFilePath is null)
         {
@@ -83,7 +83,7 @@ public static class PromptGenerator
 
         string sourceFilePath = foundFiles[0];
 
-        return GeneratePromptFromPath(sourceFilePath, sampleFilePath);
+        return GeneratePromptFromPath(sourceFilePath, sampleFilePath, overwrite);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public static class PromptGenerator
     /// <param name="sampleFilePath">Путь к файлу шаблона Sample.txt.</param>
     /// <returns>Полный путь к созданному файлу промпта, либо null, если исходный файл сюжета не найден.</returns>
     /// <exception cref="FileNotFoundException">Выбрасывается, если не найден шаблон Sample.txt.</exception>
-    public static string? GeneratePromptFromPath(string absolutePath, string? sampleFilePath = null)
+    public static string? GeneratePromptFromPath(string absolutePath, string? sampleFilePath = null, bool overwrite = true)
     {
         if ( sampleFilePath is null)
         {
@@ -147,6 +147,11 @@ public static class PromptGenerator
         if (targetDir != null && !Directory.Exists(targetDir))
         {
             Directory.CreateDirectory(targetDir);
+        }
+
+        if (File.Exists(targetFilePath) && !overwrite)
+        {
+            return targetFilePath;
         }
 
         File.WriteAllText(targetFilePath, generatedContent);
