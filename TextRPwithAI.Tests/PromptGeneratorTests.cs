@@ -189,4 +189,37 @@ public class PromptGeneratorTests : IDisposable
         // Проверяем, что объединенный блок стоит прямо перед "Я играю за"
         Assert.Contains(expectedPart.Replace("\r", ""), result.Replace("\r", ""));
     }
+
+    /// <summary>
+    /// Тест проверяет, что строка с сеттингом из сюжета переносится в шаблон вместо "Сеттинг: ***" и удаляется из сюжета.
+    /// </summary>
+    [Fact]
+    public void GeneratePromptFromPath_ShouldMoveSettingAndRemoveItFromStory()
+    {
+        // Arrange
+        var testFileName = "SettingQuest.txt";
+        var sourceFilePath = Path.Combine(_testStoryPath, testFileName);
+        
+        var storyContent = "Начало сюжета.\r\nСеттинг: Киберпанк, космос\r\n\r\nДальнейшее описание.";
+        File.WriteAllText(sourceFilePath, storyContent);
+
+        var sampleWithSettingPath = Path.Combine(_testBasePath, "SampleWithSetting.txt");
+        File.WriteAllText(sampleWithSettingPath, "Системный промпт.\nСеттинг: ***\nИгра:\n*****\nКонец.");
+
+        // Act
+        var resultPath = PromptGenerator.GeneratePromptFromPath(sourceFilePath, sampleWithSettingPath);
+
+        // Assert
+        Assert.NotNull(resultPath);
+        var resultContent = File.ReadAllText(resultPath);
+        
+        // Проверяем, что сеттинг подставился
+        Assert.Contains("Сеттинг: Киберпанк, космос", resultContent);
+        Assert.DoesNotContain("Сеттинг: ***", resultContent);
+        
+        // Проверяем, что в самой части сюжета сеттинг и пустая строка удалены
+        string expectedBody = "Игра:\nНачало сюжета.\nДальнейшее описание.".Replace("\n", "\r\n");
+        string normalizedResult = resultContent.Replace("\r\n", "\n").Replace("\n", "\r\n");
+        Assert.Contains(expectedBody, normalizedResult);
+    }
 }

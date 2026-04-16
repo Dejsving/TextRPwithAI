@@ -27,6 +27,11 @@ public static class PromptGenerator
     private static string _storyPath = Path.Combine(_basePath, "Сюжеты");
 
     /// <summary>
+    /// Путь к файлу шаблона Sample.txt.
+    /// </summary>
+    private static string _sampleFilePath = Path.Combine(_basePath, "Образец.txt");
+
+    /// <summary>
     /// Устанавливает пользовательские пути. Полезно для переопределения в модульных тестах.
     /// </summary>
     /// <param name="basePath">Новый базовый путь к папкам.</param>
@@ -61,8 +66,13 @@ public static class PromptGenerator
     /// <returns>Полный путь к созданному файлу промпта, либо null, если исходный файл сюжета не найден.</returns>
     /// <exception cref="DirectoryNotFoundException">Выбрасывается, если не существует папка с сюжетами.</exception>
     /// <exception cref="FileNotFoundException">Выбрасывается, если не найден шаблон Sample.txt.</exception>
-    public static string? GeneratePrompt(string fileName, string sampleFilePath = "Sample.txt")
+    public static string? GeneratePrompt(string fileName, string? sampleFilePath = null)
     {
+        if ( sampleFilePath is null)
+        {
+            sampleFilePath = _sampleFilePath;
+        }
+
         if (!Directory.Exists(_storyPath))
             throw new DirectoryNotFoundException($"Каталог сюжетов не найден по пути: {_storyPath}");
 
@@ -83,8 +93,13 @@ public static class PromptGenerator
     /// <param name="sampleFilePath">Путь к файлу шаблона Sample.txt.</param>
     /// <returns>Полный путь к созданному файлу промпта, либо null, если исходный файл сюжета не найден.</returns>
     /// <exception cref="FileNotFoundException">Выбрасывается, если не найден шаблон Sample.txt.</exception>
-    public static string? GeneratePromptFromPath(string absolutePath, string sampleFilePath = "Sample.txt")
+    public static string? GeneratePromptFromPath(string absolutePath, string? sampleFilePath = null)
     {
+        if ( sampleFilePath is null)
+        {
+            sampleFilePath = _sampleFilePath;
+        }
+
         if (!File.Exists(absolutePath))
             return null;
 
@@ -96,6 +111,14 @@ public static class PromptGenerator
 
         // Обрабатываем сюжет (объединяем мета-абзацы и переносим их)
         storyContent = ProcessStoryContent(storyContent);
+
+        // Обрабатываем перенос сеттинга
+        var settingMatch = Regex.Match(storyContent, @"^Сеттинг:.*", RegexOptions.Multiline);
+        if (settingMatch.Success)
+        {
+            sampleContent = sampleContent.Replace("Сеттинг: ***", settingMatch.Value.TrimEnd());
+            storyContent = Regex.Replace(storyContent, $@"^{Regex.Escape(settingMatch.Value)}(\r?\n){{0,2}}", string.Empty, RegexOptions.Multiline);
+        }
 
         // Вместо ***** вставляем содержимое найденного сюжета
         string generatedContent = sampleContent.Replace("*****", storyContent);
