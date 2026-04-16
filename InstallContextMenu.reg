@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.txt\shell\CreatePrompt]
+@="Создать промт"
+; Раскомментируйте нижнюю строку и укажите правильный путь к иконке, если она у вас есть
+; "Icon"="\"C:\\Путь\\К\\Вашей\\Программе\\TextRPwithAI.exe\""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.txt\shell\CreatePrompt\command]
+@="\"C:\\source\\home\\repos\\TextRPwithAI\\bin\\Debug\\net9.0\\TextRPwithAI.exe\" \"%1\""

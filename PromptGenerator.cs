@@ -66,9 +66,6 @@ public static class PromptGenerator
         if (!Directory.Exists(_storyPath))
             throw new DirectoryNotFoundException($"Каталог сюжетов не найден по пути: {_storyPath}");
 
-        if (!File.Exists(sampleFilePath))
-            throw new FileNotFoundException($"Шаблон не найден по пути: {sampleFilePath}. Убедитесь, что Sample.txt лежит там же, где выполняется код.");
-
         // Ищем файл во всех вложенных папках директории Сюжеты
         string[] foundFiles = Directory.GetFiles(_storyPath, fileName, SearchOption.AllDirectories);
         if (foundFiles.Length == 0)
@@ -76,8 +73,26 @@ public static class PromptGenerator
 
         string sourceFilePath = foundFiles[0];
 
+        return GeneratePromptFromPath(sourceFilePath, sampleFilePath);
+    }
+
+    /// <summary>
+    /// Создает промпт из указанного абсолютного пути файла сюжета.
+    /// </summary>
+    /// <param name="absolutePath">Абсолютный путь к файлу сюжета.</param>
+    /// <param name="sampleFilePath">Путь к файлу шаблона Sample.txt.</param>
+    /// <returns>Полный путь к созданному файлу промпта, либо null, если исходный файл сюжета не найден.</returns>
+    /// <exception cref="FileNotFoundException">Выбрасывается, если не найден шаблон Sample.txt.</exception>
+    public static string? GeneratePromptFromPath(string absolutePath, string sampleFilePath = "Sample.txt")
+    {
+        if (!File.Exists(absolutePath))
+            return null;
+
+        if (!File.Exists(sampleFilePath))
+            throw new FileNotFoundException($"Шаблон не найден по пути: {sampleFilePath}. Убедитесь, что Sample.txt лежит там же, где выполняется код.");
+
         string sampleContent = File.ReadAllText(sampleFilePath);
-        string storyContent = File.ReadAllText(sourceFilePath);
+        string storyContent = File.ReadAllText(absolutePath);
 
         // Обрабатываем сюжет (объединяем мета-абзацы и переносим их)
         storyContent = ProcessStoryContent(storyContent);
@@ -85,16 +100,25 @@ public static class PromptGenerator
         // Вместо ***** вставляем содержимое найденного сюжета
         string generatedContent = sampleContent.Replace("*****", storyContent);
 
-        // Получаем относительный путь к файлу (чтобы сохранить иерархию папок)
-        string relativeFilePath = Path.GetRelativePath(_storyPath, sourceFilePath);
+        // Получаем путь относительно _storyPath (для проверки, внутри ли он этой папки)
+        string relativeFilePath = Path.GetRelativePath(_storyPath, absolutePath);
 
-        // Устанавливаем новое имя файла "Промт. {Имя}"
-        string parentDir = Path.GetDirectoryName(relativeFilePath) ?? string.Empty;
-        string newFileName = $"Промт. {fileName}";
-        string newRelativeFilePath = string.IsNullOrEmpty(parentDir) ? newFileName : Path.Combine(parentDir, newFileName);
+        string targetFilePath;
+        string newFileName = $"Промт. {Path.GetFileName(absolutePath)}";
 
-        // Формируем финальный путь в папке Промты
-        string targetFilePath = Path.Combine(_promptPath, newRelativeFilePath);
+        // Если файл внутри папки с сюжетами - сохраняем в папку Промты с иерархией
+        if (!relativeFilePath.StartsWith("..") && !Path.IsPathRooted(relativeFilePath))
+        {
+            string parentDir = Path.GetDirectoryName(relativeFilePath) ?? string.Empty;
+            string newRelativeFilePath = string.IsNullOrEmpty(parentDir) ? newFileName : Path.Combine(parentDir, newFileName);
+            targetFilePath = Path.Combine(_promptPath, newRelativeFilePath);
+        }
+        else
+        {
+            // Если файл вне папки сюжетов - сохраняем промпт в ту же директорию, где и сюжет
+            string parentDir = Path.GetDirectoryName(absolutePath) ?? string.Empty;
+            targetFilePath = Path.Combine(parentDir, newFileName);
+        }
 
         string? targetDir = Path.GetDirectoryName(targetFilePath);
         if (targetDir != null && !Directory.Exists(targetDir))

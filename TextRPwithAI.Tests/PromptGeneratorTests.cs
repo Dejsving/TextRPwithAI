@@ -91,6 +91,58 @@ public class PromptGeneratorTests : IDisposable
     }
 
     /// <summary>
+    /// Тест проверки работы нового метода генерации по абсолютному пути, когда файл внутри папки сюжетов.
+    /// </summary>
+    [Fact]
+    public void GeneratePromptFromPath_ShouldSaveInPrompts_WhenInsideStoryPath()
+    {
+        // Arrange
+        var testFileName = "DirectQuest.txt";
+        var nestedDir = Path.Combine(_testStoryPath, "Вложенная");
+        Directory.CreateDirectory(nestedDir);
+        
+        var sourceFilePath = Path.Combine(nestedDir, testFileName);
+        var storyContent = "Прямой сюжет по пути.";
+        File.WriteAllText(sourceFilePath, storyContent);
+
+        // Act
+        var resultPath = PromptGenerator.GeneratePromptFromPath(sourceFilePath, _sampleFilePath);
+
+        // Assert
+        Assert.NotNull(resultPath);
+        Assert.True(File.Exists(resultPath), "Файл не был создан.");
+        
+        var expectedTargetPath = Path.Combine(_testPromptPath, "Вложенная", $"Промт. {testFileName}");
+        Assert.Equal(expectedTargetPath, resultPath);
+    }
+
+    /// <summary>
+    /// Тест проверки работы нового метода генерации по абсолютному пути, когда файл вне папки сюжетов.
+    /// </summary>
+    [Fact]
+    public void GeneratePromptFromPath_ShouldSaveNextToSource_WhenOutsideStoryPath()
+    {
+        // Arrange
+        var testFileName = "ExternalQuest.txt";
+        var externalDir = Path.Combine(_testBasePath, "ВнешняяПапка");
+        Directory.CreateDirectory(externalDir);
+        
+        var sourceFilePath = Path.Combine(externalDir, testFileName);
+        var storyContent = "Внешний сюжет.";
+        File.WriteAllText(sourceFilePath, storyContent);
+
+        // Act
+        var resultPath = PromptGenerator.GeneratePromptFromPath(sourceFilePath, _sampleFilePath);
+
+        // Assert
+        Assert.NotNull(resultPath);
+        Assert.True(File.Exists(resultPath), "Файл не был создан.");
+        
+        var expectedTargetPath = Path.Combine(externalDir, $"Промт. {testFileName}");
+        Assert.Equal(expectedTargetPath, resultPath);
+    }
+
+    /// <summary>
     /// Тест проверяет выброс исключения при отсутствии файла шаблона (Sample.txt).
     /// </summary>
     [Fact]
