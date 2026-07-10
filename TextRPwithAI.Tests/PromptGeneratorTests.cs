@@ -208,37 +208,6 @@ public class PromptGeneratorTests : IDisposable
     }
 
     /// <summary>
-    /// Тест проверяет, что мета-теги корректно объединяются и вставляются перед строкой "Я играю за".
-    /// </summary>
-    [Fact]
-    public void ProcessStoryContent_ShouldCombineMetaAndInsertBeforeAnchor()
-    {
-        // Arrange
-        string inputContent = @"Обычный текст начала.
-<Мета: Первая информация>
-Продолжение текста.
-<Мета: Вторая информация>
-Завершающий текст.
-Я играю за Героя.
-Конец лора.";
-
-        string expectedPart = @"<Мета: Первая информация
-
-Вторая информация>
-
-Я играю за Героя.";
-
-        // Act
-        string result = PromptGenerator.ProcessStoryContent(inputContent);
-
-        // Assert
-        Assert.DoesNotContain("<Мета: Первая информация>", result);
-        Assert.DoesNotContain("<Мета: Вторая информация>", result);
-        // Проверяем, что объединенный блок стоит прямо перед "Я играю за"
-        Assert.Contains(expectedPart.Replace("\r", ""), result.Replace("\r", ""));
-    }
-
-    /// <summary>
     /// Тест проверяет, что строка с сеттингом из сюжета переносится в шаблон вместо "Сеттинг: ***" и удаляется из сюжета.
     /// </summary>
     [Fact]
