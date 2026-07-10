@@ -109,9 +109,6 @@ public static class PromptGenerator
         string sampleContent = File.ReadAllText(sampleFilePath);
         string storyContent = File.ReadAllText(absolutePath);
 
-        // Обрабатываем сюжет (объединяем мета-абзацы и переносим их)
-        storyContent = ProcessStoryContent(storyContent);
-
         // Обрабатываем перенос сеттинга
         var settingMatch = Regex.Match(storyContent, @"^Сеттинг:.*", RegexOptions.Multiline);
         if (settingMatch.Success)
@@ -157,51 +154,5 @@ public static class PromptGenerator
         File.WriteAllText(targetFilePath, generatedContent);
 
         return targetFilePath;
-    }
-
-    /// <summary>
-    /// Обрабатывает содержимое сюжета: объединяет мета-теги и вставляет их перед строкой "Я играю за".
-    /// </summary>
-    /// <param name="content">Исходный текст сюжета.</param>
-    /// <returns>Обработанный текст.</returns>
-    public static string ProcessStoryContent(string content)
-    {
-        string metaPattern = @"<Мета:\s*(.+?)\s*>";
-        var matches = Regex.Matches(content, metaPattern, RegexOptions.Singleline);
-        
-        if (matches.Count == 0)
-        {
-            return content;
-        }
-
-        var metaContents = new List<string>();
-        foreach (Match match in matches)
-        {
-            metaContents.Add(match.Groups[1].Value.Trim());
-        }
-
-        // Удаляем оригинальные блоки <Мета: ...>
-        string processedContent = Regex.Replace(content, metaPattern, string.Empty, RegexOptions.Singleline);
-
-        // Убираем множественные пустые строки, которые могли остаться после удаления
-        processedContent = Regex.Replace(processedContent, @"\n[ \t]*\n[ \t]*\n", "\n\n", RegexOptions.Multiline);
-
-        // Формируем объединенный блок
-        string combinedMeta = $"<Мета: {string.Join(Environment.NewLine + Environment.NewLine, metaContents)}>";
-
-        string anchorPattern = @"^(?=Я играю за)";
-        var anchorRegex = new Regex(anchorPattern, RegexOptions.Multiline);
-        
-        // Вставляем перед "Я играю за" (если найдено) или в конец файла
-        if (anchorRegex.IsMatch(processedContent))
-        {
-            processedContent = anchorRegex.Replace(processedContent, combinedMeta + Environment.NewLine + Environment.NewLine, 1);
-        }
-        else
-        {
-            processedContent = processedContent.TrimEnd() + Environment.NewLine + Environment.NewLine + combinedMeta;
-        }
-
-        return processedContent.Trim();
     }
 }
