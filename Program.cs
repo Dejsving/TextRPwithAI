@@ -19,7 +19,15 @@ if (!isInteractive)
     // Получаем файл из контекстного меню или командной строки
     selectedStory = args[0];
     AnsiConsole.MarkupLine($"Получен файл: [yellow]{selectedStory}[/]");
-    
+
+    // Определяем базовый путь из расположения переданного файла
+    if (!PromptGenerator.InitializePathsFromFile(selectedStory) && !PromptGenerator.IsBasePathFound)
+    {
+        AnsiConsole.MarkupLine("[yellow]Папка YandexDisk не найдена по стандартным путям. Запускаю полный поиск по компьютеру, это может занять время...[/]");
+        if (!PromptGenerator.InitializePathsWithFullSearch())
+            AnsiConsole.MarkupLine("[red]Папка YandexDisk не найдена на компьютере. Пути к Промтам и Образцу могут быть некорректны.[/]");
+    }
+
     try
     {
         // Передаем абсолютный путь к файлу напрямую
@@ -33,6 +41,17 @@ if (!isInteractive)
 }
 else
 {
+    if (!PromptGenerator.IsBasePathFound)
+    {
+        AnsiConsole.MarkupLine("[yellow]Папка YandexDisk не найдена по стандартным путям. Запускаю полный поиск по компьютеру, это может занять время...[/]");
+        if (!PromptGenerator.InitializePathsWithFullSearch())
+        {
+            AnsiConsole.MarkupLine("[bold red]Папка YandexDisk не найдена на компьютере. Невозможно получить список сюжетов.[/]");
+            Console.ReadKey();
+            return;
+        }
+    }
+
     var stories = PromptGenerator.GetAvailableStories();
 
     if (stories.Length == 0)

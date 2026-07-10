@@ -239,4 +239,75 @@ public class PromptGeneratorTests : IDisposable
         string normalizedResult = resultContent.Replace("\r\n", "\n").Replace("\n", "\r\n");
         Assert.Contains(expectedBody, normalizedResult);
     }
+
+    /// <summary>
+    /// Тест проверяет, что InitializePathsFromFile корректно определяет базовый путь
+    /// при передаче файла, находящегося внутри папки Yandex.Disk.
+    /// </summary>
+    [Fact]
+    public void InitializePathsFromFile_ShouldSetCorrectBasePath_WhenFileInsideYandexDisk()
+    {
+        // Arrange
+        var tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var yandexPath = Path.Combine(tempRoot, "Yandex.Disk");
+        var gameBasePath = Path.Combine(yandexPath, "НРИ", "Игры с нейросетью");
+        var storiesDir = Path.Combine(gameBasePath, "Сюжеты");
+        var promptsDir = Path.Combine(gameBasePath, "Промты");
+
+        Directory.CreateDirectory(storiesDir);
+        Directory.CreateDirectory(promptsDir);
+
+        var storyFile = Path.Combine(storiesDir, "Story.txt");
+        File.WriteAllText(storyFile, "Сюжет.");
+
+        try
+        {
+            // Act
+            var result = PromptGenerator.InitializePathsFromFile(storyFile);
+
+            // Assert
+            Assert.True(result, "Метод должен вернуть true при нахождении папки Yandex.Disk.");
+            Assert.True(PromptGenerator.IsBasePathFound);
+
+            var stories = PromptGenerator.GetAvailableStories();
+            Assert.Single(stories);
+            Assert.Contains("Story.txt", stories[0]);
+        }
+        finally
+        {
+            // Восстанавливаем тестовые пути для следующих тестов
+            PromptGenerator.InitializePaths(_testBasePath);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, true);
+        }
+    }
+
+    /// <summary>
+    /// Тест проверяет, что InitializePathsFromFile возвращает false,
+    /// если файл находится вне иерархии папки YandexDisk.
+    /// </summary>
+    [Fact]
+    public void InitializePathsFromFile_ShouldReturnFalse_WhenFileOutsideYandexDisk()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var tempFile = Path.Combine(tempDir, "Story.txt");
+        File.WriteAllText(tempFile, "Сюжет.");
+
+        try
+        {
+            // Act
+            var result = PromptGenerator.InitializePathsFromFile(tempFile);
+
+            // Assert
+            Assert.False(result, "Метод должен вернуть false, если YandexDisk не найден в пути.");
+        }
+        finally
+        {
+            PromptGenerator.InitializePaths(_testBasePath);
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
 }

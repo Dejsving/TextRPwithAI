@@ -12,9 +12,16 @@ namespace TextRPwithAI;
 public static class PromptGenerator
 {
     /// <summary>
-    /// Базовый путь к каталогу с данными игры.
+    /// Относительный под-путь внутри папки YandexDisk до каталога с данными игры.
     /// </summary>
-    private static string _basePath = @"D:\Clouds\YandexDisk\Игры с нейросетью";
+    private static readonly string _yandexSubPath = Path.Combine("НРИ", "Игры с нейросетью");
+
+    /// <summary>
+    /// Базовый путь к каталогу с данными игры.
+    /// Вычисляется автоматически через поиск папки YandexDisk по стандартным путям.
+    /// Пустая строка означает, что путь не найден и требуется ручная инициализация.
+    /// </summary>
+    private static string _basePath = FindBasePathStandard() ?? string.Empty;
 
     /// <summary>
     /// Путь к каталогу с промптами.
@@ -32,6 +39,117 @@ public static class PromptGenerator
     private static string _sampleFilePath = Path.Combine(_basePath, "Образец.txt");
 
     /// <summary>
+    /// Возвращает true, если базовый путь был успешно найден и установлен.
+    /// </summary>
+    public static bool IsBasePathFound => !string.IsNullOrEmpty(_basePath);
+
+    /// <summary>
+    /// Ищет папку YandexDisk по стандартным путям: домашняя директория пользователя,
+    /// корни фиксированных дисков и вложенные папки Clouds на каждом диске.
+    /// </summary>
+    /// <returns>Полный путь к базовому каталогу игры, либо null если папка не найдена.</returns>
+    private static string? FindBasePathStandard()
+    {
+        var yandexFolderNames = new[] { "Yandex.Disk", "YandexDisk", "Яндекс.Диск" };
+
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        var searchRoots = new List<string> { userProfile };
+
+        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed))
+        {
+            searchRoots.Add(drive.RootDirectory.FullName);
+            searchRoots.Add(Path.Combine(drive.RootDirectory.FullName, "Clouds"));
+        }
+
+        foreach (var root in searchRoots)
+        {
+            foreach (var name in yandexFolderNames)
+            {
+                string candidate = Path.Combine(root, name);
+                if (Directory.Exists(candidate))
+                    return Path.Combine(candidate, _yandexSubPath);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Инициализирует пути, вычисляя местоположение папки YandexDisk по пути переданного файла.
+    /// Поднимается вверх по дереву директорий, пока не найдёт папку с именем YandexDisk или аналогичным.
+    /// </summary>
+    /// <param name="filePath">Абсолютный путь к файлу, переданному из командной строки или контекстного меню.</param>
+    /// <returns>true, если папка YandexDisk найдена и пути инициализированы; false иначе.</returns>
+    public static bool InitializePathsFromFile(string filePath)
+    {
+        var yandexFolderNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "Yandex.Disk", "YandexDisk", "Яндекс.Диск" };
+
+        string? dirPath = Path.GetDirectoryName(Path.GetFullPath(filePath));
+        if (dirPath == null) return false;
+
+        var dir = new DirectoryInfo(dirPath);
+        while (dir != null)
+        {
+            if (yandexFolderNames.Contains(dir.Name))
+            {
+                InitializePaths(Path.Combine(dir.FullName, _yandexSubPath));
+                return true;
+            }
+            dir = dir.Parent!;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Выполняет полный рекурсивный поиск папки YandexDisk по всем фиксированным дискам системы.
+    /// Может занять значительное время — используется как последний вариант при поиске.
+    /// </summary>
+    /// <returns>true, если папка найдена и пути инициализированы; false иначе.</returns>
+    public static bool InitializePathsWithFullSearch()
+    {
+        var yandexFolderNames = new[] { "Yandex.Disk", "YandexDisk", "Яндекс.Диск" };
+
+        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed))
+        {
+            var found = SearchDirectoryRecursive(drive.RootDirectory, yandexFolderNames);
+            if (found != null)
+            {
+                InitializePaths(Path.Combine(found, _yandexSubPath));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Рекурсивно ищет директорию с одним из указанных имён, пропуская папки без доступа.
+    /// </summary>
+    /// <param name="dir">Директория, с которой начинается поиск.</param>
+    /// <param name="targetNames">Массив искомых имён директорий.</param>
+    /// <returns>Полный путь к найденной директории, либо null.</returns>
+    private static string? SearchDirectoryRecursive(DirectoryInfo dir, string[] targetNames)
+    {
+        try
+        {
+            foreach (var subDir in dir.EnumerateDirectories())
+            {
+                if (targetNames.Contains(subDir.Name, StringComparer.OrdinalIgnoreCase))
+                    return subDir.FullName;
+
+                var result = SearchDirectoryRecursive(subDir, targetNames);
+                if (result != null)
+                    return result;
+            }
+        }
+        catch (UnauthorizedAccessException) { }
+        catch (IOException) { }
+
+        return null;
+    }
+
+    /// <summary>
     /// Устанавливает пользовательские пути. Полезно для переопределения в модульных тестах.
     /// </summary>
     /// <param name="basePath">Новый базовый путь к папкам.</param>
@@ -40,6 +158,7 @@ public static class PromptGenerator
         _basePath = basePath;
         _promptPath = Path.Combine(basePath, "Промты");
         _storyPath = Path.Combine(basePath, "Сюжеты");
+        _sampleFilePath = Path.Combine(basePath, "Образец.txt");
     }
 
     /// <summary>
