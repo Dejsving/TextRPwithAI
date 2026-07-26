@@ -1,8 +1,8 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.txt\shell\CreatePrompt]
-@="Create promt"
-"Icon"="\"C:\\source\\home\\repos\\TextRPwithAI\\bin\\Debug\\net9.0\\TextRPwithAI.exe\""
+@="Create prompt"
+"Icon"="\"C:\\repos\\home\\TextRPwithAI\\bin\\Debug\\net10.0\\TextRPwithAI.exe\""
 
 [HKEY_CLASSES_ROOT\SystemFileAssociations\.txt\shell\CreatePrompt\command]
-@="\"C:\\source\\home\\repos\\TextRPwithAI\\bin\\Debug\\net9.0\\TextRPwithAI.exe\" \"%1\""
+@="\"C:\\repos\\home\\TextRPwithAI\\bin\\Debug\\net10.0\\TextRPwithAI.exe\" \"%1\""
